@@ -147,11 +147,13 @@ RANDOMS_VFS_ADVANCED = ['A', 'B', 'C', 'E', 'J', 'K', 'L', 'Q']
 RANDOMS_VFS_INTERMEDIATE = ['A', 'B', 'E', 'J', 'L']
 
 RANDOMS_MFS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'T']
+RANDOMS_MFS_ADVANCED = ['B', 'C', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']
 
 BLOCKS_VFS_ADVANCED = ['1', '2', '3', '4', '7', '8', '9', '11', '12', '13', '14', '16', '17', '18', '20', '21', '22']
 BLOCKS_VFS_INTERMEDIATE = ['1', '2', '3', '7', '8', '12', '13', '14', '21', '22']
 
 BLOCKS_MFS = ['1', '2', '3', '4', '7', '8', '9', '11', '12', '13', '14', '16', '17']
+BLOCKS_MFS_ADVANCED = ['1', '2', '3', '5', '6', '7', '8', '9', '10', '11', '12', '15', '17']
 
 BLOCKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
 
@@ -441,6 +443,10 @@ function update_and_refresh_ui_for_4_draws() {
 		num_points = 4
 		num_draws = 3
 		dive_pool = RANDOMS_VFS_ADVANCED.concat(BLOCKS_VFS_ADVANCED)
+	} else if (compclass == 'advmfs') {
+		num_points = 4
+		num_draws = 3
+		dive_pool = RANDOMS_MFS_ADVANCED.concat(BLOCKS_MFS_ADVANCED)
 	} else if (compclass == 'intvfs') {
 		num_points = 3
 		dive_pool = RANDOMS_VFS_INTERMEDIATE.concat(BLOCKS_VFS_INTERMEDIATE)
@@ -523,6 +529,7 @@ function copy_draws_to_clipboard() {
       <option value="int4way">4-way Intermediate</option>
       <option value="int8way">8-way Intermediate</option>
       <option value="advvfs">VFS Advanced</option>
+      <option value="advmfs">MFS Advanced</option>
       <!-- TODO 6-round draw for VFS int -->
       <!--<option value="intvfs">VFS Intermediate</option>-->
   </select>
