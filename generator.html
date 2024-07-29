@@ -139,7 +139,7 @@ for (var i = 0; i < OUTER; i++) {
   }
 }
 
-DIVE_POOLS_UPDATED_STRING = 'Dive pool rules updated July 2024 from <a href="https://www.uspa.org/SCM" target="_blank">USPA SCM</a>'
+DIVE_POOLS_UPDATED_STRING = 'Dive pool rules updated July 2024 from <a href="https://www.uspa.org/SCM" target="_blank">USPA SCM</a>.'
 
 RANDOMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
 
@@ -502,7 +502,7 @@ function update_and_refresh_ui_for_4_draws() {
 		}
 	}
 	stats += values + '<br>'
-	stats += DIVE_POOLS_UPDATED_STRING + '<br>'
+	stats += '<br>' + DIVE_POOLS_UPDATED_STRING + '<br>'
 	document.getElementById('statsoutput').innerHTML = stats
 };
 
@@ -542,7 +542,8 @@ function copy_draws_to_clipboard() {
 	<form>
 	<pre id="drawoutput" style="width:100%" rows="60" nowrap="nowrap" wrap="off" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">Generating dives...</pre>
 	</form>
-	<div id="statsoutput"></div>
+	<div id="statsoutput" style="font-size: small"></div>
+	<div id="footer" style="font-size: small">Spot an error or want a feature? E-mail <a href="mailto:support@fsnerds.com">support@fsnerds.com</a>.</div>
 
 </body>
 </html>
