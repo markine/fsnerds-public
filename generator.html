@@ -503,6 +503,7 @@ function update_and_refresh_ui_for_4_draws() {
 function copy_draws_to_clipboard() {
 	content = document.getElementById('drawoutput').innerHTML
 	content = content.split('<br>').join('\n')
+	content += '\n// http://divegenerator.fsnerds.com'
 	navigator.clipboard.writeText(content)
 }
 
