@@ -139,25 +139,41 @@ for (var i = 0; i < OUTER; i++) {
   }
 }
 
+DIVE_POOLS_UPDATED_STRING = 'Dive pool rules updated July 2024 from <a href="https://www.uspa.org/SCM" target="_blank">USPA SCM</a>'
 
 RANDOMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q']
+
+RANDOMS_VFS_ADVANCED = ['A', 'B', 'C', 'E', 'J', 'K', 'L', 'Q']
+RANDOMS_VFS_INTERMEDIATE = ['A', 'B', 'E', 'J', 'L']
+
+RANDOMS_MFS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'T']
+
+BLOCKS_VFS_ADVANCED = ['1', '2', '3', '4', '7', '8', '9', '11', '12', '13', '14', '16', '17', '18', '20', '21', '22']
+BLOCKS_VFS_INTERMEDIATE = ['1', '2', '3', '7', '8', '12', '13', '14', '21', '22']
+
+BLOCKS_MFS = ['1', '2', '3', '4', '7', '8', '9', '11', '12', '13', '14', '16', '17']
+
 BLOCKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
 
-POINTS = RANDOMS.concat(BLOCKS)
+BLOCKS_OPEN = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22']
+
+BLOCKS_4WAY_INTERMEDIATE = ['1', '2', '4', '6', '7', '8', '9', '11', '13', '14', '15', '18', '19', '20', '21', '22']
+
+BLOCKS_8WAY_INTERMEDIATE = ['1', '3', '4', '5', '6', '7', '8', '10', '13', '14', '16', '17', '18', '19', '21']
 
 
 
-function prepare_counts_matrix(counts) {
+function prepare_counts_matrix(counts, dive_pool) {
 
 // Given a reduced dictionary of transitions (only non-zero counts are present), and given the dive pool used for generation, fill out a full spare set of counts, zeroes included.
 
 
-for (const [key1, value1] of Object.entries(POINTS)) {
+for (const [key1, value1] of Object.entries(dive_pool)) {
   if (!(value1 in counts)) {
     counts[value1] = {}
     //console.log(value1, ' not in')
   }
-  for (const [key2, value2] of Object.entries(POINTS)) {
+  for (const [key2, value2] of Object.entries(dive_pool)) {
     //console.log(counts[value1])
     if (value1 != value2) {
       if (!(value2 in counts[value1])) {
@@ -170,8 +186,8 @@ for (const [key1, value1] of Object.entries(POINTS)) {
 }
 
 
-function prepare_exit_counts(exit_counts) {
-for (const [key1, value1] of Object.entries(POINTS)) {
+function prepare_exit_counts(exit_counts, dive_pool) {
+for (const [key1, value1] of Object.entries(dive_pool)) {
   exit_counts[value1] = 0
 }
 }
@@ -217,26 +233,22 @@ function points_in_pick(pick) {
 	}
 
 
-function generate_dives3(biased, transition_counts, exit_counts) {
-  unpicked_points = structuredClone(POINTS)
+function generate_dives3(biased, pick_exits_first, transition_counts, exit_counts, num_points, num_dives_per_draw, dive_pool) {
+  unpicked_points = structuredClone(dive_pool)
 
   points_in_dive = 0
   dive = []
 
-POINTS_THRESHOLD = 5
-NUM_ROUNDS_WANTED = 11
 dives = []
 
-PICK_EXITS_AHEAD_OF_TIME=false
-
 	exits = []
-if (PICK_EXITS_AHEAD_OF_TIME) {
-	for (var i = 0; i < NUM_ROUNDS_WANTED; i++) {
+if (pick_exits_first) {
+	for (var i = 0; i < num_dives_per_draw; i++) {
 	exit = pick_exit(biased, unpicked_points, transition_counts, exit_counts)
       unpicked_points = unpicked_points.filter(p => p != exit)
       exits.push(exit)
 	}
-	console.log('picked exits: ', exits)
+	//console.log('picked exits: ', exits)
 
 
 }
@@ -244,7 +256,7 @@ if (PICK_EXITS_AHEAD_OF_TIME) {
 while (unpicked_points.length) {
 
     if (points_in_dive == 0) {
-	if (PICK_EXITS_AHEAD_OF_TIME) {
+	if (pick_exits_first) {
 		from_pick = exits[dives.length]
 	} else {
 		from_pick = pick_exit(biased, unpicked_points, transition_counts, exit_counts)
@@ -257,7 +269,7 @@ while (unpicked_points.length) {
     }
 
   if (unpicked_points.length == 0) {
-    unpicked_points = refill_points(dive)
+    unpicked_points = refill_points(dive, dive_pool)
   }
 
 	      next_choices = []
@@ -275,7 +287,7 @@ while (unpicked_points.length) {
 	// TODO: Can I calculate counts in-depth for each possible point?
 
 	// If we know that the next point pick might finish the dive, try extra layer of counts
-	if ((points_in_dive + 2) >= POINTS_THRESHOLD) {
+	if ((points_in_dive + 2) >= num_points) {
 	  for (const [key1, value1] of Object.entries(next_choices)) {
 		  //console.log('consider next choice ', value1)
 
@@ -307,7 +319,7 @@ while (unpicked_points.length) {
         unpicked_points = unpicked_points.filter(p => p != to_pick)
 
 
-  if (points_in_dive >= POINTS_THRESHOLD) {
+  if (points_in_dive >= num_points) {
 	  /*
     if (transition_counts[dive[dive.length-1]][dive[0]] != 0) {
 	  console.log('non zero count: ', dive[dive.length-1], ' to ', dive[0])
@@ -328,13 +340,13 @@ while (unpicked_points.length) {
     points_in_dive = 0
     dive = []
 
-    if (dives.length >= NUM_ROUNDS_WANTED) {
+    if (dives.length >= num_dives_per_draw) {
        return dives
     }
   }
 
 	  if (unpicked_points.length == 0) {
-	unpicked_points = refill_points(dive)
+	unpicked_points = refill_points(dive, dive_pool)
 	  }
 
     from_pick = to_pick
@@ -345,21 +357,20 @@ while (unpicked_points.length) {
 }
 
 
-function refill_points(partial_dive) {
+function refill_points(partial_dive, dive_pool) {
   full_set = []
-  for (var i = 0; i < POINTS.length; i++) {
-    indexInArray = partial_dive.findIndex((element) => element == POINTS[i]);
+  for (var i = 0; i < dive_pool.length; i++) {
+    indexInArray = partial_dive.findIndex((element) => element == dive_pool[i]);
 	  if (indexInArray < 0) {
-		  full_set.push(POINTS[i])
+		  full_set.push(dive_pool[i])
 	  }
 }
 return full_set
 }
 
 
-function use_case_4_draws_without_repeats() {
+function use_case_4_draws_without_repeats(num_points, num_dives_per_draw, num_draws, dive_pool) {
 //console.log(exit_counts)
-NUM_DRAWS = 4
 NUM_RETRIES = 100
 for (var retry = 0; retry < NUM_RETRIES; retry++) {
 try {
@@ -367,12 +378,12 @@ try {
 
 counts = {}
 exit_counts = {}
-prepare_counts_matrix(counts)
-prepare_exit_counts(exit_counts)
+prepare_counts_matrix(counts, dive_pool)
+prepare_exit_counts(exit_counts, dive_pool)
 draws = []
 
-for (var i = 0; i < NUM_DRAWS; i++) {
-	draw = generate_dives3(true, counts, exit_counts)
+for (var i = 0; i < num_draws; i++) {
+	draw = generate_dives3(true, true, counts, exit_counts, num_points, num_dives_per_draw, dive_pool)
 	draws.push(draw)
 }
 	for (const [key1, value1] of Object.entries(counts)) {
@@ -411,7 +422,35 @@ window.onload = (event) => {
 }
 
 function update_and_refresh_ui_for_4_draws() {
-	[draws, counts, exit_counts] = use_case_4_draws_without_repeats()
+	compclass = document.getElementById('compclass').value
+	// default Open class
+	num_points = 5
+	num_dives_per_draw = 11
+	num_draws = 4
+	// TODO num draws 3 or 4, depending on dive pool size.
+	dive_pool = RANDOMS.concat(BLOCKS_OPEN)
+	if (compclass == 'int4way') {
+		num_points = 4
+		num_draws = 3
+		dive_pool = RANDOMS.concat(BLOCKS_4WAY_INTERMEDIATE)
+	} else if (compclass == 'int8way') {
+		num_points = 4
+		num_draws = 3
+		dive_pool = RANDOMS.concat(BLOCKS_8WAY_INTERMEDIATE)
+	} else if (compclass == 'advvfs') {
+		num_points = 4
+		num_draws = 3
+		dive_pool = RANDOMS_VFS_ADVANCED.concat(BLOCKS_VFS_ADVANCED)
+	} else if (compclass == 'intvfs') {
+		num_points = 3
+		dive_pool = RANDOMS_VFS_INTERMEDIATE.concat(BLOCKS_VFS_INTERMEDIATE)
+	} else if (compclass == 'mfsopen') {
+		num_points = 4
+		num_draws = 3
+		dive_pool = RANDOMS_MFS.concat(BLOCKS_MFS)
+	}
+
+	[draws, counts, exit_counts] = use_case_4_draws_without_repeats(num_points, num_dives_per_draw, num_draws, dive_pool)
 
 	output = ''
 	for (var draw = 0; draw < draws.length; draw++) {
@@ -457,6 +496,7 @@ function update_and_refresh_ui_for_4_draws() {
 		}
 	}
 	stats += values + '<br>'
+	stats += DIVE_POOLS_UPDATED_STRING + '<br>'
 	document.getElementById('statsoutput').innerHTML = stats
 };
 
@@ -474,8 +514,18 @@ function copy_draws_to_clipboard() {
 		<a href="http://fsnerds.com" target="_blank" rel="noopener noreferrer"><img style="vertical-align: middle" src="data:image/png;base64,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" alt="fsnerds.com" height="40" width="40"></a>
 		&nbsp;
   <select id="drawmode">
-      <option value="4draws">4 draws, all exits, no repeat transitions</option>
+      <option value="4draws">Cover all exits, avoid repeat transitions</option>
   </select>
+  <select id="compclass" onchange="update_and_refresh_ui_for_4_draws()">
+      <option value="open">Open class 4/8-way, VFS</option>
+      <option value="mfsopen">Open class MFS</option>
+      <option value="int4way">4-way Intermediate</option>
+      <option value="int8way">8-way Intermediate</option>
+      <option value="advvfs">VFS Advanced</option>
+      <!-- TODO 6-round draw for VFS int -->
+      <!--<option value="intvfs">VFS Intermediate</option>-->
+  </select>
+
 		&nbsp;
 		<a href="#" onclick="update_and_refresh_ui_for_4_draws()" style='vertical-align: middle; font-size: xxx-large; font-color: #FFFFFF; text-decoration: none;' title='Regenerate'>&#10227;</a>
 		<a href="#" onclick="copy_draws_to_clipboard()" style='vertical-align: middle; font-size: x-large; font-color: #FFFFFF; text-decoration: none;' title='Copy to clipboard'>&#126982;</a>
