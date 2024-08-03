@@ -579,12 +579,21 @@ function copy_draws_to_clipboard() {
   </select>
   <select id="compclass" onchange="update_and_refresh_ui_for_4_draws()">
       <option value="open">Open class 4/8-way, VFS</option>
-      <option value="mfsopen">Open class MFS</option>
+      <option disabled>───────────</option>
+      <option value="open">4-way Open</option>
+      <option value="open">4-way Advanced</option>
       <option value="int4way">4-way Intermediate</option>
       <option value="beg4way">4-way Beginner</option>
+      <option disabled>───────────</option>
+      <option value="open">8-way Open</option>
+      <option value="open">8-way Advanced</option>
       <option value="int8way">8-way Intermediate</option>
+      <option disabled>───────────</option>
+      <option value="open">VFS Open</option>
       <option value="advvfs">VFS Advanced</option>
       <option value="intvfs">VFS Intermediate</option>
+      <option disabled>───────────</option>
+      <option value="mfsopen">MFS Open</option>
       <option value="advmfs">MFS Advanced</option>
       <option value="intmfs">MFS Intermediate</option>
   </select>
