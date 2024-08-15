@@ -12,6 +12,7 @@ if (counts.length == 0) {
   return []
 }
 
+// If there is at least 1 count of 0, run through and pick 0 counts only
 for(var i=0; i < counts.length; i++) {
   if (counts[i] == 0) {
   new_weights = []
@@ -114,6 +115,9 @@ function arrange_weighted_choices(choices, weights) {
 
 
 function random_pick(weighted_choices) {
+  if (weighted_choices.length == 0) {
+	  throw('random_pick got empty choices list')
+  }
   pick = Math.floor(Math.random() * weighted_choices.length)
   return weighted_choices[pick]
 }
@@ -146,14 +150,14 @@ RANDOMS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O',
 RANDOMS_VFS_ADVANCED = ['A', 'B', 'C', 'E', 'J', 'K', 'L', 'Q']
 RANDOMS_VFS_INTERMEDIATE = ['A', 'B', 'E', 'J', 'L']
 
-RANDOMS_MFS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'T']
+RANDOMS_MFS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']
 RANDOMS_MFS_ADVANCED = ['B', 'C', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R']
 RANDOMS_MFS_INTERMEDIATE = ['F', 'G', 'H', 'J', 'K', 'L', 'M', 'P', 'Q']
 
 BLOCKS_VFS_ADVANCED = ['1', '2', '3', '4', '7', '8', '9', '11', '12', '13', '14', '16', '17', '18', '20', '21', '22']
 BLOCKS_VFS_INTERMEDIATE = ['1', '2', '3', '7', '8', '12', '13', '14', '21', '22']
 
-BLOCKS_MFS = ['1', '2', '3', '4', '7', '8', '9', '11', '12', '13', '14', '16', '17']
+BLOCKS_MFS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17']
 BLOCKS_MFS_ADVANCED = ['1', '2', '3', '5', '6', '7', '8', '9', '10', '11', '12', '15', '17']
 BLOCKS_MFS_INTERMEDIATE = ['5', '6', '7', '8', '10']
 
@@ -212,7 +216,7 @@ function points_in_pick(pick) {
 }
 
 
-	function pick_exit(biased, unpicked_points, transition_counts, exit_counts) {
+	function pick_exit(biased, unpicked_points, exit_counts) {
 	      next_choices = []
 	      next_counts = []
 	for (var j = 0; j < unpicked_points.length; j++) {
@@ -238,7 +242,7 @@ function points_in_pick(pick) {
 	}
 
 
-function generate_dives3(biased, pick_exits_first, transition_counts, exit_counts, num_points, num_dives_per_draw, dive_pool) {
+function generate_dives3(biased, pick_exits_first, transition_counts, transition_counts_bias, exit_counts, num_points, num_dives_per_draw, dive_pool) {
   unpicked_points = structuredClone(dive_pool)
 
   points_in_dive = 0
@@ -249,7 +253,7 @@ dives = []
 	exits = []
 if (pick_exits_first) {
 	for (var i = 0; i < num_dives_per_draw; i++) {
-	exit = pick_exit(biased, unpicked_points, transition_counts, exit_counts)
+	exit = pick_exit(biased, unpicked_points, exit_counts)
       unpicked_points = unpicked_points.filter(p => p != exit)
       exits.push(exit)
 	}
@@ -264,7 +268,7 @@ while (unpicked_points.length) {
 	if (pick_exits_first) {
 		from_pick = exits[dives.length]
 	} else {
-		from_pick = pick_exit(biased, unpicked_points, transition_counts, exit_counts)
+		from_pick = pick_exit(biased, unpicked_points, exit_counts)
 	      unpicked_points = unpicked_points.filter(p => p != from_pick)
 	}
       points_in_dive += points_in_pick(from_pick)
@@ -274,20 +278,22 @@ while (unpicked_points.length) {
     }
 
   if (unpicked_points.length == 0) {
-    unpicked_points = refill_points(dive, dive_pool)
+    unpicked_points = refill_points(dive, dive_pool, exits)
   }
 
 	      next_choices = []
 	      next_counts = []
 	  for (const [key1, value1] of Object.entries(unpicked_points)) {
 		  if (value1 in transition_counts[from_pick]) {
-
 			 next_choices.push(value1)
+			 var c = transition_counts[from_pick][value1]
+			 if (from_pick in transition_counts_bias && value1 in transition_counts_bias[from_pick]) {
+				 c += transition_counts_bias[from_pick][value1]
+			 }
 			 next_counts.push(transition_counts[from_pick][value1])
 
 		  }
 	  }
-
 
 	// TODO: Can I calculate counts in-depth for each possible point?
 
@@ -298,13 +304,16 @@ while (unpicked_points.length) {
 
 		 // TODO try another layer here for randoms
 
-		  if (value1 in transition_counts) {
+		  if (value1 in transition_counts && dive[0] in transition_counts[value1]) {
 		  	//console.log('consider next choice ', value1, ' has ', transition_counts[value1][dive[0]], ' transitions back to exit ', dive[0])
 			  next_counts[key1] += transition_counts[value1][dive[0]]
+			 if (value1 in transition_counts_bias && dive[0] in transition_counts_bias[value1]) {
+				 next_counts[key1] += transition_counts_bias[value1][dive[0]]
+			 }
+
 		  }
           }
 	}
-
 
       if (biased) {
         weights = get_int_weights_from_counts(next_counts, WEIGHT_ACCURACY)
@@ -351,7 +360,7 @@ while (unpicked_points.length) {
   }
 
 	  if (unpicked_points.length == 0) {
-	unpicked_points = refill_points(dive, dive_pool)
+	unpicked_points = refill_points(dive, dive_pool, exits)
 	  }
 
     from_pick = to_pick
@@ -362,10 +371,11 @@ while (unpicked_points.length) {
 }
 
 
-function refill_points(partial_dive, dive_pool) {
+function refill_points(partial_dive, dive_pool, prepicked_exits) {
+  used_formations = partial_dive.concat(prepicked_exits)
   full_set = []
   for (var i = 0; i < dive_pool.length; i++) {
-    indexInArray = partial_dive.findIndex((element) => element == dive_pool[i]);
+    indexInArray = used_formations.findIndex((element) => element == dive_pool[i]);
 	  if (indexInArray < 0) {
 		  full_set.push(dive_pool[i])
 	  }
@@ -373,9 +383,10 @@ function refill_points(partial_dive, dive_pool) {
 return full_set
 }
 
+COUNTS_BIAS_FROM_TEAM_NAME = ""
+COUNTS_BIAS_FROM_TEAM = {}
 
-function use_case_4_draws_without_repeats(num_points, num_dives_per_draw, num_draws, dive_pool, avoid_repeats_in_last_dive) {
-//console.log(exit_counts)
+function use_case_4_draws_without_repeats(num_points, num_dives_per_draw, num_draws, dive_pool, avoid_repeats_in_last_dive, bias_for_team_history) {
 NUM_RETRIES = 100
 for (var retry = 0; retry < NUM_RETRIES; retry++) {
 try {
@@ -383,12 +394,17 @@ try {
 
 counts = {}
 exit_counts = {}
+counts_bias = {}
+if (bias_for_team_history) {
+	counts_bias = COUNTS_BIAS_FROM_TEAM
+}
+
 prepare_counts_matrix(counts, dive_pool)
 prepare_exit_counts(exit_counts, dive_pool)
 draws = []
 
 for (var i = 0; i < num_draws; i++) {
-	draw = generate_dives3(true, true, counts, exit_counts, num_points, num_dives_per_draw, dive_pool)
+	draw = generate_dives3(true, true, counts, counts_bias, exit_counts, num_points, num_dives_per_draw, dive_pool)
 	draws.push(draw)
 }
 	for (const [key1, value1] of Object.entries(counts)) {
@@ -435,6 +451,17 @@ for (var i = 0; i < num_draws; i++) {
 		throw 'last dive recycled formations, asked not to'
 	}
 
+	if (Object.keys(COUNTS_BIAS_FROM_TEAM).length) {
+		num_previously_seen_transitions = 0
+		for (const [key1, value1] of Object.entries(counts)) {
+			for (const [key2, value2] of Object.entries(value1)) {
+				if (value2 > 0 && key1 in COUNTS_BIAS_FROM_TEAM && key2 in COUNTS_BIAS_FROM_TEAM[key1] && COUNTS_BIAS_FROM_TEAM[key1][key2] > 0) {
+					num_previously_seen_transitions += 1
+				}
+			}
+		}
+		console.log('# transitions from team history duplicated in this set of generated draws: ', num_previously_seen_transitions)
+	}
 
 	return [draws, counts, exit_counts]
 
@@ -453,10 +480,21 @@ throw 'Ran out of retries'
 
 
 window.onload = (event) => {
+	// If the script is seeded with team history, use it by default
+	if (Object.keys(COUNTS_BIAS_FROM_TEAM).length) {
+		bias_check = document.getElementById('biasforteam')
+		bias_div = document.getElementById('div_biasforteam')
+		bias_label = document.getElementById('label_biasforteam')
+		bias_check.checked = true
+		bias_div.hidden = false
+		bias_label.innerHTML = 'Favor transitions seen less frequently by ' + COUNTS_BIAS_FROM_TEAM_NAME + '.'
+	}
+
 	update_and_refresh_ui_for_4_draws()
 }
 
 function update_and_refresh_ui_for_4_draws() {
+	bias_for_team_history = document.getElementById('biasforteam').checked
 	compclass = document.getElementById('compclass').value
 	// default Open class
 	num_points = 5
@@ -505,7 +543,7 @@ function update_and_refresh_ui_for_4_draws() {
 		dive_pool = RANDOMS_MFS.concat(BLOCKS_MFS)
 	}
 
-	[draws, counts, exit_counts] = use_case_4_draws_without_repeats(num_points, num_dives_per_draw, num_draws, dive_pool, avoid_repeats_in_last_dive)
+	[draws, counts, exit_counts] = use_case_4_draws_without_repeats(num_points, num_dives_per_draw, num_draws, dive_pool, avoid_repeats_in_last_dive, bias_for_team_history)
 
 	output = ''
 	for (var draw = 0; draw < draws.length; draw++) {
@@ -601,6 +639,7 @@ function copy_draws_to_clipboard() {
 		&nbsp;
 		<a href="#" onclick="update_and_refresh_ui_for_4_draws()" style='vertical-align: middle; font-size: xxx-large; font-color: #FFFFFF; text-decoration: none;' title='Regenerate'>&#10227;</a>
 		<a href="#" onclick="copy_draws_to_clipboard()" style='vertical-align: middle; font-size: x-large; font-color: #FFFFFF; text-decoration: none;' title='Copy to clipboard'>&#126982;</a>
+		<div id="div_biasforteam" style="font-size: small" hidden><input type="checkbox" id="biasforteam" value="bias" onclick="update_and_refresh_ui_for_4_draws()"><label for="biasforteam" id='label_biasforteam'></label></div>
 
 	</div>
 	<form>
